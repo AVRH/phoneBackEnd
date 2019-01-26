@@ -1,12 +1,14 @@
 const express = require('express')
+require('dotenv').config()
 const cors = require('cors')
 const app = express()
 const bodyParser = require('body-parser')
 const morgan = require('morgan')
+const Person = require('./models/person')
+
 
 app.use(bodyParser.json())
 app.use(cors())
-app.use(express.static('build'))
 
 morgan.token('body', function getBody (req) {
 	return JSON.stringify(req.body)
@@ -37,8 +39,16 @@ let persons = [
   }
 ]
 
+
+
+
+
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Person
+    .find({})
+    .then(people => {
+      res.json(people.map(person => person.toJSON()))
+    })
 })
 
 app.get('/api/persons/:id', (req, res) => {
@@ -76,20 +86,21 @@ app.post('/api/persons', (req,res) => {
       return res.status(400).json({ error: 'Name is already in the directory'})
   } 
 
-  const person = {
-    id: Math.floor(Math.random()*Math.floor(100)),
+  const person = new Person(
+    {
     name: body.name,
-    number: body.number
-  }
-  persons = persons.concat(person)
-  res.json(person)
-
+    number: body.number}
+    )
+  person
+      .save()
+      .then(savedPerson => {
+        res.json(savedPerson.toJSON())
+      })
 })
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT 
 
 
 app.listen(PORT, () => {
-  console.log(`${process.env.PORT}`)
   console.log(`Server running on port ${PORT}`)
 })
