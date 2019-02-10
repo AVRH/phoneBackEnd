@@ -15,33 +15,6 @@ morgan.token('body', function getBody (req) {
 })
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
-let persons = [
-  {
-    id: 1,
-    name: 'Arto Hellas',
-    number: '045-1236543'
-  },
-  {
-    id: 2,
-    name: 'Arto Jarvinen',
-    number: '040-4323234'
-  },
-  {
-    id: 3,
-    name: 'Lea Kutvonen',
-    number: '040-4323234'
-  },
-  {
-    id: 4,
-    name: 'Martti Tienari',
-    number: '09-784232'
-
-  }
-]
-
-
-
-
 
 app.get('/api/persons', (req, res) => {
   Person
@@ -52,13 +25,11 @@ app.get('/api/persons', (req, res) => {
 })
 
 app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(p => p.id === id)
-  if(person){
-    res.json(person)
-  }else{
-    res.status(404).end()
-  }
+  Person
+    .findById(req.params.id)
+    .then(person => {
+      res.json(person.toJSON())
+    })
 })
 
 app.get('/info', (req,res) => {
@@ -79,15 +50,8 @@ app.delete('/api/persons/:id', (req, res, next) => {
     .catch(error => next(error))
 })
 
-app.post('/api/persons', (req,res) => {
+app.post('/api/persons', (req,res,next) => {
   const body = req.body
-
-  if(body.name === undefined || body.number === undefined){
-    return res.status(400).json({error: 'Name or number is missing'})
-  } 
-  if(persons.findIndex(p => p.name === body.name) !== -1){
-      return res.status(400).json({ error: 'Name is already in the directory'})
-  } 
 
   const person = new Person(
     {
@@ -99,6 +63,7 @@ app.post('/api/persons', (req,res) => {
       .then(savedPerson => {
         res.json(savedPerson.toJSON())
       })
+      .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (req, res, next) => {
@@ -127,6 +92,9 @@ const errorHandler = (error, req, res, next) => {
 
   if(error.name === 'CastError' && error.kind == 'ObjectId') {
     return res.status(404).send({error: 'malformatted id'})
+  }
+  else if(error.name === 'ValidationError'){
+    return res.status(404).send({error: error.message}) 
   }
   next(error)
 }
